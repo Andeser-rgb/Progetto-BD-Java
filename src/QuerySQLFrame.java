@@ -288,8 +288,11 @@ public class QuerySQLFrame extends JFrame {
                         resultTextArea.setText("Nessun lavoro pubblico trovato.");
                     } else {
                         StringBuilder msg = new StringBuilder();
-                        lista.forEach(lav -> msg.append("ID: ").append(lav.get("ID"))
-                                .append(", Titolo: ").append(lav.get("titolo")).append("\n"));
+                        lista.forEach(lav -> msg
+                                .append("ID: ").append(lav.get("ID"))
+                                .append(", Titolo: ").append(lav.get("titolo"))
+                                .append(", Visualizzazioni: ").append(lav.get("visualizzazioni"))
+                                .append("\n"));
                         resultTextArea.setText(msg.toString());
                     }
                 } catch (Exception ex) {
@@ -306,7 +309,10 @@ public class QuerySQLFrame extends JFrame {
                     } else {
                         StringBuilder msg = new StringBuilder();
                         lista.forEach(lav -> msg.append("ID: ").append(lav.get("ID"))
-                                .append(", Titolo: ").append(lav.get("titolo")).append("\n"));
+                                .append(", Titolo: ").append(lav.get("titolo"))
+                                .append(", Prezzo di partenza: ").append(lav.get("prezzoDiPartenza"))
+                                .append(", Scadenza: ").append(lav.get("Scadenza"))
+                                .append("\n"));
                         resultTextArea.setText(msg.toString());
                     }
                 } catch (Exception ex) {
@@ -405,7 +411,9 @@ public class QuerySQLFrame extends JFrame {
                     } else {
                         StringBuilder msg = new StringBuilder();
                         lista.forEach(lav -> msg.append("ID: ").append(lav.get("ID"))
-                                .append(", Titolo: ").append(lav.get("titolo")).append("\n"));
+                                .append(", Titolo: ").append(lav.get("titolo"))
+                                .append(", Visualizzazioni: ").append(lav.get("visualizzazioni"))
+                                .append("\n"));
                         resultTextArea.setText(msg.toString());
                     }
                 } catch (Exception ex) {

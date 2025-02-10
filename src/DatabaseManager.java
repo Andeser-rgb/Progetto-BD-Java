@@ -251,7 +251,7 @@ public class DatabaseManager {
     // ============================
     public static List<Map<String, Object>> elencaLavoriPubblici() throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
-        String query = "SELECT L.* FROM Lavoro L INNER JOIN Pubblico P ON P.lavoro_ID = L.ID;";
+        String query = "SELECT * FROM Lavoro L INNER JOIN Pubblico P ON P.lavoro_ID = L.ID;";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(query);
              ResultSet rs = stmt.executeQuery()) {
@@ -264,6 +264,7 @@ public class DatabaseManager {
                 lavoro.put("numeroCapitoli", rs.getInt("numeroCapitoli"));
                 lavoro.put("utente_ID", rs.getInt("utente_ID"));
                 lavoro.put("codiceLingua", rs.getString("codiceLingua"));
+                lavoro.put("visualizzazioni", rs.getString("visualizzazioni"));
                 lista.add(lavoro);
             }
         }
@@ -275,7 +276,7 @@ public class DatabaseManager {
     // ============================
     public static List<Map<String, Object>> elencaLavoriInVendita() throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
-        String query = "SELECT L.* FROM Lavoro L INNER JOIN InVendita V ON V.lavoro_ID = L.ID;";
+        String query = "SELECT * FROM Lavoro L INNER JOIN InVendita V ON V.lavoro_ID = L.ID;";
         try (Connection conn = getConnection();
              PreparedStatement stmt = conn.prepareStatement(query);
              ResultSet rs = stmt.executeQuery()) {
@@ -288,6 +289,8 @@ public class DatabaseManager {
                 lavoro.put("numeroCapitoli", rs.getInt("numeroCapitoli"));
                 lavoro.put("utente_ID", rs.getInt("utente_ID"));
                 lavoro.put("codiceLingua", rs.getString("codiceLingua"));
+                lavoro.put("prezzoDiPartenza", rs.getDouble("prezzoDiPartenza"));
+                lavoro.put("scadenza", rs.getTimestamp("scadenza"));
                 lista.add(lavoro);
             }
         }
@@ -402,7 +405,7 @@ public class DatabaseManager {
     // ============================
     public static List<Map<String, Object>> elencaLavoriPubbliciPerVisualizzazioni() throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
-        String query = "SELECT L.* FROM Lavoro L " +
+        String query = "SELECT * FROM Lavoro L " +
                 "INNER JOIN Pubblico P ON P.lavoro_ID = L.ID " +
                 "ORDER BY P.visualizzazioni;";
         try (Connection conn = getConnection();
@@ -417,6 +420,7 @@ public class DatabaseManager {
                 lavoro.put("numeroCapitoli", rs.getInt("numeroCapitoli"));
                 lavoro.put("utente_ID", rs.getInt("utente_ID"));
                 lavoro.put("codiceLingua", rs.getString("codiceLingua"));
+                lavoro.put("visualizzazioni", rs.getInt("visualizzazioni"));
                 lista.add(lavoro);
             }
         }
@@ -582,7 +586,7 @@ public class DatabaseManager {
     // ============================
     public static List<Map<String, Object>> selezionaLavoriAutoriFrancesi() throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
-        String query = "SELECT L.ID, L.titolo, L.rating, L.dataPubblicazione, L.numeroCapitoli, L.utente_ID, L.codiceLingua " +
+        String query = "SELECT L.* " +
                 "FROM Lavoro L INNER JOIN Utente U ON L.utente_ID = U.ID " +
                 "WHERE L.numeroCapitoli >= 10 AND U.paese = 'France';";
         try (Connection conn = getConnection();
@@ -608,7 +612,7 @@ public class DatabaseManager {
     // ============================
     public static List<Map<String, Object>> selezionaCommentiRispostaLavoriFrancesi() throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
-        String query = "SELECT C.ID, C.contenuto, C.dataCommento, C.utente_ID, C.lavoro_ID " +
+        String query = "SELECT C.* " +
                 "FROM Commento C INNER JOIN Risponde R ON C.ID = R.commentatore_ID " +
                 "INNER JOIN Lavoro L ON C.lavoro_ID = L.ID " +
                 "WHERE L.codiceLingua = 'FR';";
@@ -633,7 +637,7 @@ public class DatabaseManager {
     // ============================
     public static List<Map<String, Object>> selezionaLavoriCon100Like() throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
-        String query = "SELECT L.ID, L.titolo, L.rating, L.dataPubblicazione, L.numeroCapitoli, L.utente_ID, L.codiceLingua " +
+        String query = "SELECT L.* " +
                 "FROM Lavoro L INNER JOIN MiPiace M ON L.ID = M.lavoro_ID " +
                 "GROUP BY L.ID HAVING COUNT(*) >= 100;";
         try (Connection conn = getConnection();
