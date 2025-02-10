@@ -598,10 +598,38 @@ public class QuerySQLFrame extends JFrame {
 
     };
 
+    static private String[] tooltips = new String[]{
+            "Aggiungere utente",
+            "Selezionare dati utente",
+            "Aggiungere lavoro pubblico",
+            "Aggiungere lavoro in vendita",
+            "Aggiungere capitolo",
+            "Modificare capitolo",
+            "Aggiungere tag ad un lavoro",
+            "Aggiungere alias",
+            "Selezionare dati lavoro compreso il # capitoli",
+            "Elencare lavori pubblici",
+            "Elencare lavori in vendita",
+            "Elencare lavori in base al # capitoli",
+            "Elencare lavori in base alla lingua",
+            "Elencare lavori in base alla data di pubblicazione",
+            "Elencare lavori in base ad un tag",
+            "Elencare lavori pubblici in base alle visualizzazioni",
+            "Selezionare contenuto capitolo",
+            "Aggiungere commento",
+            "Aggiungere like",
+            "Fare offerta",
+            "Acquistare lavoro (rendere lavoro privato)",
+            "Selezionare tutti i lavori di autori francesi con almeno 10 capitoli",
+            "Selezionare tutti i commenti in risposta ad un commento di tutti i lavori in francese",
+            "Selezionare tutti i lavori che hanno almeno 100 like"
+    };
+
     private void initButtons() {
         operationButtons = new ArrayList<>();
         for (var i = 0; i < listeners.length; i++) {
             var button = new JButton("Operazione " + (i + 1));
+            button.setToolTipText(tooltips[i]);
             var tempListener = listeners[i];
             button.addActionListener(e -> {
                 tempListener.actionPerformed(e);
