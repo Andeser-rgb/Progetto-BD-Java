@@ -3,8 +3,6 @@ import java.io.InputStream;
 import java.sql.*;
 import java.util.*;
 
-import java.sql.Date;
-
 public class DatabaseManager {
     private static final String URL;
     private static final String USER;
@@ -75,182 +73,182 @@ public class DatabaseManager {
         }
     }
 
-    // ****************************
+    // ============================
     // Operazione 2: Selezionare dati utente
-    // ****************************
+    // ============================
     public static ResultSet selezionaDatiUtente(int id) throws SQLException {
         String query = "SELECT * FROM Utente WHERE ID = ?;";
-        // NOTA: il caller dovrà chiudere il ResultSet, lo Statement e la Connection
         Connection conn = getConnection();
         PreparedStatement stmt = conn.prepareStatement(query);
         stmt.setInt(1, id);
         return stmt.executeQuery();
     }
 
-    // ****************************
+    // ============================
     // Operazione 3: Aggiungere lavoro pubblico
-    // ****************************
-    public static void aggiungiLavoroPubblico(int id, String titolo, double rating, Date dataPubblicazione,
-                                              int numeroCapitoli, int utenteId, String codiceLingua)
+    // Inserisce in Lavoro e poi in Pubblico; restituisce l'ID del nuovo lavoro.
+    // ============================
+    public static int aggiungiLavoroPubblico(String titolo, String rating, Timestamp dataPubblicazione,
+                                             int numeroCapitoli, int utenteId, String codiceLingua)
             throws SQLException {
-        String queryLavoro = "INSERT INTO Lavoro(ID, titolo, rating, dataPubblicazione, numeroCapitoli, utente_ID, codiceLingua) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?);";
+        String queryLavoro = "INSERT INTO Lavoro(titolo, rating, dataPubblicazione, numeroCapitoli, utente_ID, codiceLingua) " +
+                "VALUES (?, ?, ?, ?, ?, ?);";
         String queryPubblico = "INSERT INTO Pubblico(lavoro_ID, visualizzazioni) VALUES (?, 0);";
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
-            try (PreparedStatement stmtLavoro = conn.prepareStatement(queryLavoro);
-                 PreparedStatement stmtPubblico = conn.prepareStatement(queryPubblico)) {
-                stmtLavoro.setInt(1, id);
-                stmtLavoro.setString(2, titolo);
-                stmtLavoro.setDouble(3, rating);
-                stmtLavoro.setDate(4, dataPubblicazione);
-                stmtLavoro.setInt(5, numeroCapitoli);
-                stmtLavoro.setInt(6, utenteId);
-                stmtLavoro.setString(7, codiceLingua);
+            int idLavoro;
+            try (PreparedStatement stmtLavoro = conn.prepareStatement(queryLavoro, Statement.RETURN_GENERATED_KEYS)) {
+                stmtLavoro.setString(1, titolo);
+                stmtLavoro.setString(2, rating); // rating atteso: 'G','T','M','E'
+                stmtLavoro.setTimestamp(3, dataPubblicazione);
+                stmtLavoro.setInt(4, numeroCapitoli);
+                stmtLavoro.setInt(5, utenteId);
+                stmtLavoro.setString(6, codiceLingua);
                 stmtLavoro.executeUpdate();
-
-                stmtPubblico.setInt(1, id);
-                stmtPubblico.executeUpdate();
-
-                conn.commit();
-            } catch (SQLException e) {
-                conn.rollback();
-                throw e;
-            } finally {
-                conn.setAutoCommit(true);
+                try (ResultSet rs = stmtLavoro.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        idLavoro = rs.getInt(1);
+                    } else {
+                        throw new SQLException("Impossibile recuperare l'ID del lavoro.");
+                    }
+                }
             }
+            try (PreparedStatement stmtPub = conn.prepareStatement(queryPubblico)) {
+                stmtPub.setInt(1, idLavoro);
+                stmtPub.executeUpdate();
+            }
+            conn.commit();
+            return idLavoro;
         }
     }
 
-    // ****************************
+    // ============================
     // Operazione 4: Aggiungere lavoro in vendita
-    // ****************************
-    public static void aggiungiLavoroInVendita(int id, String titolo, double rating, Date dataPubblicazione,
-                                               int numeroCapitoli, int utenteId, String codiceLingua,
-                                               double prezzoDiPartenza, Date scadenza) throws SQLException {
-        String queryLavoro = "INSERT INTO Lavoro(ID, titolo, rating, dataPubblicazione, numeroCapitoli, utente_ID, codiceLingua) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?);";
+    // Inserisce in Lavoro e poi in InVendita; restituisce l'ID del nuovo lavoro.
+    // ============================
+    public static int aggiungiLavoroInVendita(String titolo, String rating, Timestamp dataPubblicazione,
+                                              int numeroCapitoli, int utenteId, String codiceLingua,
+                                              double prezzoDiPartenza, Timestamp scadenza)
+            throws SQLException {
+        String queryLavoro = "INSERT INTO Lavoro(titolo, rating, dataPubblicazione, numeroCapitoli, utente_ID, codiceLingua) " +
+                "VALUES (?, ?, ?, ?, ?, ?);";
         String queryInVendita = "INSERT INTO InVendita(lavoro_ID, prezzoDiPartenza, scadenza) VALUES (?, ?, ?);";
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
-            try (PreparedStatement stmtLavoro = conn.prepareStatement(queryLavoro);
-                 PreparedStatement stmtInVendita = conn.prepareStatement(queryInVendita)) {
-                stmtLavoro.setInt(1, id);
-                stmtLavoro.setString(2, titolo);
-                stmtLavoro.setDouble(3, rating);
-                stmtLavoro.setDate(4, dataPubblicazione);
-                stmtLavoro.setInt(5, numeroCapitoli);
-                stmtLavoro.setInt(6, utenteId);
-                stmtLavoro.setString(7, codiceLingua);
+            int idLavoro;
+            try (PreparedStatement stmtLavoro = conn.prepareStatement(queryLavoro, Statement.RETURN_GENERATED_KEYS)) {
+                stmtLavoro.setString(1, titolo);
+                stmtLavoro.setString(2, rating);
+                stmtLavoro.setTimestamp(3, dataPubblicazione);
+                stmtLavoro.setInt(4, numeroCapitoli);
+                stmtLavoro.setInt(5, utenteId);
+                stmtLavoro.setString(6, codiceLingua);
                 stmtLavoro.executeUpdate();
-
-                stmtInVendita.setInt(1, id);
-                stmtInVendita.setDouble(2, prezzoDiPartenza);
-                stmtInVendita.setDate(3, scadenza);
-                stmtInVendita.executeUpdate();
-
-                conn.commit();
-            } catch (SQLException e) {
-                conn.rollback();
-                throw e;
-            } finally {
-                conn.setAutoCommit(true);
+                try (ResultSet rs = stmtLavoro.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        idLavoro = rs.getInt(1);
+                    } else {
+                        throw new SQLException("Impossibile recuperare l'ID del lavoro.");
+                    }
+                }
             }
+            try (PreparedStatement stmtVendita = conn.prepareStatement(queryInVendita)) {
+                stmtVendita.setInt(1, idLavoro);
+                stmtVendita.setDouble(2, prezzoDiPartenza);
+                stmtVendita.setTimestamp(3, scadenza);
+                stmtVendita.executeUpdate();
+            }
+            conn.commit();
+            return idLavoro;
         }
     }
 
-    // ****************************
+    // ============================
     // Operazione 5: Aggiungere capitolo
-    // ****************************
-    public static void aggiungiCapitolo(int lavoroId, int numeroCapitolo, Date dataAggiornamento, String contenuto)
+    // ============================
+    public static void aggiungiCapitolo(int lavoroId, int numeroCapitolo, Timestamp dataAggiornamento, String contenuto)
             throws SQLException {
         String query = "INSERT INTO Capitolo(lavoro_ID, numeroCapitolo, dataAggiornamento, contenuto) VALUES (?, ?, ?, ?);";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, lavoroId);
             stmt.setInt(2, numeroCapitolo);
-            stmt.setDate(3, dataAggiornamento);
+            stmt.setTimestamp(3, dataAggiornamento);
             stmt.setString(4, contenuto);
             stmt.executeUpdate();
         }
     }
 
-    // ****************************
+    // ============================
     // Operazione 6: Modificare capitolo
-    // ****************************
-    public static void modificaCapitolo(int lavoroId, int numeroCapitolo, Date dataAggiornamento, String contenuto)
+    // ============================
+    public static void modificaCapitolo(int lavoroId, int numeroCapitolo, String contenuto)
             throws SQLException {
-        String query = "UPDATE Capitolo SET dataAggiornamento = ?, contenuto = ? WHERE numeroCapitolo = ? AND lavoro_ID = ?;";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setDate(1, dataAggiornamento);
-            stmt.setString(2, contenuto);
+        String query = "UPDATE Capitolo SET dataAggiornamento = CURRENT_TIMESTAMP(), contenuto = ? WHERE lavoro_ID = ? AND numeroCapitolo = ?;";
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, contenuto);
+            stmt.setInt(2, lavoroId);
             stmt.setInt(3, numeroCapitolo);
-            stmt.setInt(4, lavoroId);
             stmt.executeUpdate();
         }
     }
 
-    // ****************************
+    // ============================
     // Operazione 7: Aggiungere tag ad un lavoro
-    // ****************************
+    // ============================
     public static void aggiungiTagLavoro(int lavoroId, int tagId) throws SQLException {
         String query = "INSERT INTO ClassificatoDa(lavoro_ID, tag_ID) VALUES (?, ?);";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, lavoroId);
             stmt.setInt(2, tagId);
             stmt.executeUpdate();
         }
     }
 
-    // ****************************
+    // ============================
     // Operazione 8: Aggiungere alias
-    // ****************************
+    // ============================
     public static void aggiungiAlias(int utenteId, String alias) throws SQLException {
         String query = "INSERT INTO Alias(utente_ID, nome) VALUES (?, ?);";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, utenteId);
             stmt.setString(2, alias);
             stmt.executeUpdate();
         }
     }
 
-    // ****************************
-    // Operazione 9: Selezionare dati lavoro (con # capitoli) e incrementare visualizzazioni
-    // ****************************
-    public static Map<String, Object> selezionaLavoro(int id) throws SQLException {
+    // ============================
+    // Operazione 9: Selezionare dati lavoro e incrementare visualizzazioni (nella tabella Pubblico)
+    // ============================
+    public static Map<String, Object> selezionaLavoro(int idLavoro) throws SQLException {
         Map<String, Object> lavoro = new HashMap<>();
         try (Connection conn = getConnection()) {
             String query = "SELECT * FROM Lavoro WHERE ID = ?;";
             try (PreparedStatement stmt = conn.prepareStatement(query)) {
-                stmt.setInt(1, id);
+                stmt.setInt(1, idLavoro);
                 try (ResultSet rs = stmt.executeQuery()) {
                     if (rs.next()) {
                         lavoro.put("ID", rs.getInt("ID"));
                         lavoro.put("titolo", rs.getString("titolo"));
-                        lavoro.put("rating", rs.getDouble("rating"));
-                        lavoro.put("dataPubblicazione", rs.getDate("dataPubblicazione"));
+                        lavoro.put("rating", rs.getString("rating"));
+                        lavoro.put("dataPubblicazione", rs.getTimestamp("dataPubblicazione"));
                         lavoro.put("numeroCapitoli", rs.getInt("numeroCapitoli"));
                         lavoro.put("utente_ID", rs.getInt("utente_ID"));
                         lavoro.put("codiceLingua", rs.getString("codiceLingua"));
                     }
                 }
             }
-            // Incrementa le visualizzazioni (assumendo che il lavoro sia pubblico)
-            String updateQuery = "UPDATE Lavoro SET visualizzazioni = visualizzazioni + 1 WHERE ID = ?;";
-            try (PreparedStatement updateStmt = conn.prepareStatement(updateQuery)) {
-                updateStmt.setInt(1, id);
-                updateStmt.executeUpdate();
+            String updateQuery = "UPDATE Pubblico SET visualizzazioni = visualizzazioni + 1 WHERE lavoro_ID = ?;";
+            try (PreparedStatement stmtUpdate = conn.prepareStatement(updateQuery)) {
+                stmtUpdate.setInt(1, idLavoro);
+                stmtUpdate.executeUpdate();
             }
         }
         return lavoro;
     }
 
-    // ****************************
+    // ============================
     // Operazione 10: Elencare lavori pubblici
-    // ****************************
+    // ============================
     public static List<Map<String, Object>> elencaLavoriPubblici() throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
         String query = "SELECT L.* FROM Lavoro L INNER JOIN Pubblico P ON P.lavoro_ID = L.ID;";
@@ -261,8 +259,8 @@ public class DatabaseManager {
                 Map<String, Object> lavoro = new HashMap<>();
                 lavoro.put("ID", rs.getInt("ID"));
                 lavoro.put("titolo", rs.getString("titolo"));
-                lavoro.put("rating", rs.getDouble("rating"));
-                lavoro.put("dataPubblicazione", rs.getDate("dataPubblicazione"));
+                lavoro.put("rating", rs.getString("rating"));
+                lavoro.put("dataPubblicazione", rs.getTimestamp("dataPubblicazione"));
                 lavoro.put("numeroCapitoli", rs.getInt("numeroCapitoli"));
                 lavoro.put("utente_ID", rs.getInt("utente_ID"));
                 lavoro.put("codiceLingua", rs.getString("codiceLingua"));
@@ -272,9 +270,9 @@ public class DatabaseManager {
         return lista;
     }
 
-    // ****************************
+    // ============================
     // Operazione 11: Elencare lavori in vendita
-    // ****************************
+    // ============================
     public static List<Map<String, Object>> elencaLavoriInVendita() throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
         String query = "SELECT L.* FROM Lavoro L INNER JOIN InVendita V ON V.lavoro_ID = L.ID;";
@@ -285,8 +283,8 @@ public class DatabaseManager {
                 Map<String, Object> lavoro = new HashMap<>();
                 lavoro.put("ID", rs.getInt("ID"));
                 lavoro.put("titolo", rs.getString("titolo"));
-                lavoro.put("rating", rs.getDouble("rating"));
-                lavoro.put("dataPubblicazione", rs.getDate("dataPubblicazione"));
+                lavoro.put("rating", rs.getString("rating"));
+                lavoro.put("dataPubblicazione", rs.getTimestamp("dataPubblicazione"));
                 lavoro.put("numeroCapitoli", rs.getInt("numeroCapitoli"));
                 lavoro.put("utente_ID", rs.getInt("utente_ID"));
                 lavoro.put("codiceLingua", rs.getString("codiceLingua"));
@@ -296,9 +294,9 @@ public class DatabaseManager {
         return lista;
     }
 
-    // ****************************
+    // ============================
     // Operazione 12: Elencare lavori in base al numero di capitoli
-    // ****************************
+    // ============================
     public static List<Map<String, Object>> elencaLavoriOrdinePerCapitoli() throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
         String query = "SELECT * FROM Lavoro ORDER BY numeroCapitoli;";
@@ -309,8 +307,8 @@ public class DatabaseManager {
                 Map<String, Object> lavoro = new HashMap<>();
                 lavoro.put("ID", rs.getInt("ID"));
                 lavoro.put("titolo", rs.getString("titolo"));
-                lavoro.put("rating", rs.getDouble("rating"));
-                lavoro.put("dataPubblicazione", rs.getDate("dataPubblicazione"));
+                lavoro.put("rating", rs.getString("rating"));
+                lavoro.put("dataPubblicazione", rs.getTimestamp("dataPubblicazione"));
                 lavoro.put("numeroCapitoli", rs.getInt("numeroCapitoli"));
                 lavoro.put("utente_ID", rs.getInt("utente_ID"));
                 lavoro.put("codiceLingua", rs.getString("codiceLingua"));
@@ -320,9 +318,9 @@ public class DatabaseManager {
         return lista;
     }
 
-    // ****************************
+    // ============================
     // Operazione 13: Elencare lavori in base alla lingua
-    // ****************************
+    // ============================
     public static List<Map<String, Object>> elencaLavoriPerLingua(String codiceLingua) throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
         String query = "SELECT * FROM Lavoro WHERE codiceLingua = ?;";
@@ -334,8 +332,8 @@ public class DatabaseManager {
                     Map<String, Object> lavoro = new HashMap<>();
                     lavoro.put("ID", rs.getInt("ID"));
                     lavoro.put("titolo", rs.getString("titolo"));
-                    lavoro.put("rating", rs.getDouble("rating"));
-                    lavoro.put("dataPubblicazione", rs.getDate("dataPubblicazione"));
+                    lavoro.put("rating", rs.getString("rating"));
+                    lavoro.put("dataPubblicazione", rs.getTimestamp("dataPubblicazione"));
                     lavoro.put("numeroCapitoli", rs.getInt("numeroCapitoli"));
                     lavoro.put("utente_ID", rs.getInt("utente_ID"));
                     lavoro.put("codiceLingua", rs.getString("codiceLingua"));
@@ -346,9 +344,9 @@ public class DatabaseManager {
         return lista;
     }
 
-    // ****************************
+    // ============================
     // Operazione 14: Elencare lavori in base alla data di pubblicazione
-    // ****************************
+    // ============================
     public static List<Map<String, Object>> elencaLavoriOrdinePerDataPubblicazione() throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
         String query = "SELECT * FROM Lavoro ORDER BY dataPubblicazione;";
@@ -359,8 +357,8 @@ public class DatabaseManager {
                 Map<String, Object> lavoro = new HashMap<>();
                 lavoro.put("ID", rs.getInt("ID"));
                 lavoro.put("titolo", rs.getString("titolo"));
-                lavoro.put("rating", rs.getDouble("rating"));
-                lavoro.put("dataPubblicazione", rs.getDate("dataPubblicazione"));
+                lavoro.put("rating", rs.getString("rating"));
+                lavoro.put("dataPubblicazione", rs.getTimestamp("dataPubblicazione"));
                 lavoro.put("numeroCapitoli", rs.getInt("numeroCapitoli"));
                 lavoro.put("utente_ID", rs.getInt("utente_ID"));
                 lavoro.put("codiceLingua", rs.getString("codiceLingua"));
@@ -370,9 +368,9 @@ public class DatabaseManager {
         return lista;
     }
 
-    // ****************************
+    // ============================
     // Operazione 15: Elencare lavori in base ad un tag
-    // ****************************
+    // ============================
     public static List<Map<String, Object>> elencaLavoriPerTag(String tagNome) throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
         String query = "SELECT L.* FROM Lavoro L " +
@@ -387,8 +385,8 @@ public class DatabaseManager {
                     Map<String, Object> lavoro = new HashMap<>();
                     lavoro.put("ID", rs.getInt("ID"));
                     lavoro.put("titolo", rs.getString("titolo"));
-                    lavoro.put("rating", rs.getDouble("rating"));
-                    lavoro.put("dataPubblicazione", rs.getDate("dataPubblicazione"));
+                    lavoro.put("rating", rs.getString("rating"));
+                    lavoro.put("dataPubblicazione", rs.getTimestamp("dataPubblicazione"));
                     lavoro.put("numeroCapitoli", rs.getInt("numeroCapitoli"));
                     lavoro.put("utente_ID", rs.getInt("utente_ID"));
                     lavoro.put("codiceLingua", rs.getString("codiceLingua"));
@@ -399,9 +397,9 @@ public class DatabaseManager {
         return lista;
     }
 
-    // ****************************
+    // ============================
     // Operazione 16: Elencare lavori pubblici in base alle visualizzazioni
-    // ****************************
+    // ============================
     public static List<Map<String, Object>> elencaLavoriPubbliciPerVisualizzazioni() throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
         String query = "SELECT L.* FROM Lavoro L " +
@@ -414,8 +412,8 @@ public class DatabaseManager {
                 Map<String, Object> lavoro = new HashMap<>();
                 lavoro.put("ID", rs.getInt("ID"));
                 lavoro.put("titolo", rs.getString("titolo"));
-                lavoro.put("rating", rs.getDouble("rating"));
-                lavoro.put("dataPubblicazione", rs.getDate("dataPubblicazione"));
+                lavoro.put("rating", rs.getString("rating"));
+                lavoro.put("dataPubblicazione", rs.getTimestamp("dataPubblicazione"));
                 lavoro.put("numeroCapitoli", rs.getInt("numeroCapitoli"));
                 lavoro.put("utente_ID", rs.getInt("utente_ID"));
                 lavoro.put("codiceLingua", rs.getString("codiceLingua"));
@@ -425,14 +423,13 @@ public class DatabaseManager {
         return lista;
     }
 
-    // ****************************
+    // ============================
     // Operazione 17: Selezionare contenuto capitolo
-    // ****************************
+    // ============================
     public static String selezionaContenutoCapitolo(int lavoroId, int numeroCapitolo) throws SQLException {
         String contenuto = null;
         String query = "SELECT contenuto FROM Capitolo WHERE lavoro_ID = ? AND numeroCapitolo = ?;";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, lavoroId);
             stmt.setInt(2, numeroCapitolo);
             try (ResultSet rs = stmt.executeQuery()) {
@@ -444,139 +441,145 @@ public class DatabaseManager {
         return contenuto;
     }
 
-    // ****************************
+    // ============================
     // Operazione 18: Aggiungere commento
-    // (Versione 1: rispondere ad un lavoro)
-    // ****************************
-    public static void aggiungiCommento(int id, String contenuto, Timestamp data, int utenteId, int lavoroId)
+    // Se non si tratta di una risposta, restituisce l'ID generato.
+    // ============================
+    public static int aggiungiCommento(String contenuto, Timestamp dataCommento, int utenteId, int lavoroId)
             throws SQLException {
-        String query = "INSERT INTO Commento(ID, contenuto, data, utente_ID, lavoro_ID) VALUES (?, ?, ?, ?, ?);";
+        String query = "INSERT INTO Commento(contenuto, dataCommento, utente_ID, lavoro_ID) VALUES (?, ?, ?, ?);";
         try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, id);
-            stmt.setString(2, contenuto);
-            stmt.setTimestamp(3, data);
-            stmt.setInt(4, utenteId);
-            stmt.setInt(5, lavoroId);
+             PreparedStatement stmt = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS)) {
+            stmt.setString(1, contenuto);
+            stmt.setTimestamp(2, dataCommento);
+            stmt.setInt(3, utenteId);
+            stmt.setInt(4, lavoroId);
             stmt.executeUpdate();
-        }
-    }
-
-    // ****************************
-    // Operazione 18 (variant): Aggiungere commento in risposta a un altro commento
-    // ****************************
-    public static void aggiungiCommentoRisposta(int id, String contenuto, Timestamp data, int utenteId,
-                                                int lavoroId, int commentatoId) throws SQLException {
-        try (Connection conn = getConnection()) {
-            conn.setAutoCommit(false);
-            try (PreparedStatement stmtCommento = conn.prepareStatement(
-                    "INSERT INTO Commento(ID, contenuto, data, utente_ID, lavoro_ID) VALUES (?, ?, ?, ?, ?);");
-                 PreparedStatement stmtRisponde = conn.prepareStatement(
-                         "INSERT INTO Risponde(commentatore_ID, commentato_ID) VALUES (?, ?);")) {
-                stmtCommento.setInt(1, id);
-                stmtCommento.setString(2, contenuto);
-                stmtCommento.setTimestamp(3, data);
-                stmtCommento.setInt(4, utenteId);
-                stmtCommento.setInt(5, lavoroId);
-                stmtCommento.executeUpdate();
-
-                stmtRisponde.setInt(1, id);
-                stmtRisponde.setInt(2, commentatoId);
-                stmtRisponde.executeUpdate();
-
-                conn.commit();
-            } catch (SQLException e) {
-                conn.rollback();
-                throw e;
-            } finally {
-                conn.setAutoCommit(true);
+            try (ResultSet rs = stmt.getGeneratedKeys()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                } else {
+                    throw new SQLException("Impossibile recuperare l'ID del commento.");
+                }
             }
         }
     }
 
-    // ****************************
+    // ============================
+    // Operazione 18 (variante): Aggiungere commento risposta
+    // Inserisce il commento e poi in Risponde; restituisce l'ID del commento generato.
+    // ============================
+    public static int aggiungiCommentoRisposta(String contenuto, Timestamp dataCommento, int utenteId, int lavoroId, int commentatoId)
+            throws SQLException {
+        String queryCommento = "INSERT INTO Commento(contenuto, dataCommento, utente_ID, lavoro_ID) VALUES (?, ?, ?, ?);";
+        String queryRisponde = "INSERT INTO Risponde(commentatore_ID, commentato_ID) VALUES (?, ?);";
+        try (Connection conn = getConnection()) {
+            conn.setAutoCommit(false);
+            int generatedCommentoId;
+            try (PreparedStatement stmtCommento = conn.prepareStatement(queryCommento, Statement.RETURN_GENERATED_KEYS)) {
+                stmtCommento.setString(1, contenuto);
+                stmtCommento.setTimestamp(2, dataCommento);
+                stmtCommento.setInt(3, utenteId);
+                stmtCommento.setInt(4, lavoroId);
+                stmtCommento.executeUpdate();
+                try (ResultSet rs = stmtCommento.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        generatedCommentoId = rs.getInt(1);
+                    } else {
+                        throw new SQLException("Impossibile recuperare l'ID del commento.");
+                    }
+                }
+            }
+            try (PreparedStatement stmtRisponde = conn.prepareStatement(queryRisponde)) {
+                stmtRisponde.setInt(1, generatedCommentoId);
+                stmtRisponde.setInt(2, commentatoId);
+                stmtRisponde.executeUpdate();
+            }
+            conn.commit();
+            return generatedCommentoId;
+        }
+    }
+
+    // ============================
     // Operazione 19: Aggiungere like
-    // ****************************
+    // ============================
     public static void aggiungiLike(int utenteId, int lavoroId) throws SQLException {
         String query = "INSERT INTO MiPiace(utente_ID, lavoro_ID) VALUES (?, ?);";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, utenteId);
             stmt.setInt(2, lavoroId);
             stmt.executeUpdate();
         }
     }
 
-    // ****************************
+    // ============================
     // Operazione 20: Fare offerta
-    // ****************************
-    public static void faiOfferta(int lavoroId, int offertaId, Timestamp data, double somma, int utenteId)
+    // La tabella Offerta non utilizza AUTO_INCREMENT per l'ID dell'offerta, quindi non restituiamo un valore.
+    // ============================
+    public static void faiOfferta(int lavoroId, int offertaId, Timestamp dataOfferta, double somma, int utenteId)
             throws SQLException {
-        String query = "INSERT INTO Offerta(lavoro_ID, ID, data, somma, utente_ID) VALUES (?, ?, ?, ?, ?);";
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+        String query = "INSERT INTO Offerta(lavoro_ID, ID, dataOfferta, somma, utente_ID) VALUES (?, ?, ?, ?, ?);";
+        try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setInt(1, lavoroId);
             stmt.setInt(2, offertaId);
-            stmt.setTimestamp(3, data);
+            stmt.setTimestamp(3, dataOfferta);
             stmt.setDouble(4, somma);
             stmt.setInt(5, utenteId);
             stmt.executeUpdate();
         }
     }
 
-    // ****************************
+    // ============================
     // Operazione 21: Acquistare lavoro (rendere lavoro privato)
-    // ****************************
-    public static void acquistaLavoro(int lavoroId, int numeroFattura, Date data, String modalitaPagamento, double prezzo)
+    // - Elimina da InVendita, inserisce in Fattura e Privato; restituisce il numero della fattura generato.
+    // ============================
+    public static int acquistaLavoro(int lavoroId, Timestamp dataFattura, String modalitaPagamento, double prezzo)
             throws SQLException {
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
-            try {
-                // Eliminare il lavoro dalla tabella InVendita
-                String deleteInVendita = "DELETE FROM InVendita WHERE lavoro_ID = ?;";
-                try (PreparedStatement stmt = conn.prepareStatement(deleteInVendita)) {
-                    stmt.setInt(1, lavoroId);
-                    stmt.executeUpdate();
-                }
-
-                // Inserire una fattura
-                String insertFattura = "INSERT INTO Fattura(numeroFattura, data, modalitàPagamento, prezzo) VALUES (?, ?, ?, ?);";
-                try (PreparedStatement stmt = conn.prepareStatement(insertFattura)) {
-                    stmt.setInt(1, numeroFattura);
-                    stmt.setDate(2, data);
-                    stmt.setString(3, modalitaPagamento);
-                    stmt.setDouble(4, prezzo);
-                    stmt.executeUpdate();
-                }
-
-                // Eliminare tutte le offerte relative a questo lavoro
-                String deleteOfferta = "DELETE FROM Offerta WHERE lavoro_ID = ?;";
-                try (PreparedStatement stmt = conn.prepareStatement(deleteOfferta)) {
-                    stmt.setInt(1, lavoroId);
-                    stmt.executeUpdate();
-                }
-
-                // Rendere il lavoro privato inserendo nella tabella Privato
-                String insertPrivato = "INSERT INTO Privato(lavoro_ID, numeroFattura) VALUES (?, ?);";
-                try (PreparedStatement stmt = conn.prepareStatement(insertPrivato)) {
-                    stmt.setInt(1, lavoroId);
-                    stmt.setInt(2, numeroFattura);
-                    stmt.executeUpdate();
-                }
-
-                conn.commit();
-            } catch (SQLException e) {
-                conn.rollback();
-                throw e;
-            } finally {
-                conn.setAutoCommit(true);
+            int numeroFattura;
+            // Elimina da InVendita
+            String deleteInVendita = "DELETE FROM InVendita WHERE lavoro_ID = ?;";
+            try (PreparedStatement stmt = conn.prepareStatement(deleteInVendita)) {
+                stmt.setInt(1, lavoroId);
+                stmt.executeUpdate();
             }
+            // Inserisce in Fattura
+            String insertFattura = "INSERT INTO Fattura(dataFattura, modalitaPagamento, prezzo) VALUES (?, ?, ?);";
+            try (PreparedStatement stmt = conn.prepareStatement(insertFattura, Statement.RETURN_GENERATED_KEYS)) {
+                stmt.setTimestamp(1, dataFattura);
+                stmt.setString(2, modalitaPagamento);
+                stmt.setDouble(3, prezzo);
+                stmt.executeUpdate();
+                try (ResultSet rs = stmt.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        numeroFattura = rs.getInt(1);
+                    } else {
+                        throw new SQLException("Impossibile recuperare il numero della fattura.");
+                    }
+                }
+            }
+            // Elimina eventuali offerte per il lavoro
+            String deleteOfferta = "DELETE FROM Offerta WHERE lavoro_ID = ?;";
+            try (PreparedStatement stmt = conn.prepareStatement(deleteOfferta)) {
+                stmt.setInt(1, lavoroId);
+                stmt.executeUpdate();
+            }
+            // Inserisce in Privato
+            String insertPrivato = "INSERT INTO Privato(lavoro_ID, numeroFattura) VALUES (?, ?);";
+            try (PreparedStatement stmt = conn.prepareStatement(insertPrivato)) {
+                stmt.setInt(1, lavoroId);
+                stmt.setInt(2, numeroFattura);
+                stmt.executeUpdate();
+            }
+            conn.commit();
+            return numeroFattura;
         }
     }
 
-    // ****************************
+    // ============================
     // Operazione 22: Selezionare tutti i lavori di autori francesi con almeno 10 capitoli
-    // ****************************
+    // ============================
     public static List<Map<String, Object>> selezionaLavoriAutoriFrancesi() throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
         String query = "SELECT L.ID, L.titolo, L.rating, L.dataPubblicazione, L.numeroCapitoli, L.utente_ID, L.codiceLingua " +
@@ -589,8 +592,8 @@ public class DatabaseManager {
                 Map<String, Object> lavoro = new HashMap<>();
                 lavoro.put("ID", rs.getInt("ID"));
                 lavoro.put("titolo", rs.getString("titolo"));
-                lavoro.put("rating", rs.getDouble("rating"));
-                lavoro.put("dataPubblicazione", rs.getDate("dataPubblicazione"));
+                lavoro.put("rating", rs.getString("rating"));
+                lavoro.put("dataPubblicazione", rs.getTimestamp("dataPubblicazione"));
                 lavoro.put("numeroCapitoli", rs.getInt("numeroCapitoli"));
                 lavoro.put("utente_ID", rs.getInt("utente_ID"));
                 lavoro.put("codiceLingua", rs.getString("codiceLingua"));
@@ -600,12 +603,12 @@ public class DatabaseManager {
         return lista;
     }
 
-    // ****************************
+    // ============================
     // Operazione 23: Selezionare tutti i commenti in risposta ad un commento di tutti i lavori in francese
-    // ****************************
+    // ============================
     public static List<Map<String, Object>> selezionaCommentiRispostaLavoriFrancesi() throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
-        String query = "SELECT C.ID, C.contenuto, C.data, C.utente_ID, C.lavoro_ID " +
+        String query = "SELECT C.ID, C.contenuto, C.dataCommento, C.utente_ID, C.lavoro_ID " +
                 "FROM Commento C INNER JOIN Risponde R ON C.ID = R.commentatore_ID " +
                 "INNER JOIN Lavoro L ON C.lavoro_ID = L.ID " +
                 "WHERE L.codiceLingua = 'FR';";
@@ -616,7 +619,7 @@ public class DatabaseManager {
                 Map<String, Object> commento = new HashMap<>();
                 commento.put("ID", rs.getInt("ID"));
                 commento.put("contenuto", rs.getString("contenuto"));
-                commento.put("data", rs.getTimestamp("data"));
+                commento.put("dataCommento", rs.getTimestamp("dataCommento"));
                 commento.put("utente_ID", rs.getInt("utente_ID"));
                 commento.put("lavoro_ID", rs.getInt("lavoro_ID"));
                 lista.add(commento);
@@ -625,9 +628,9 @@ public class DatabaseManager {
         return lista;
     }
 
-    // ****************************
+    // ============================
     // Operazione 24: Selezionare tutti i lavori che hanno almeno 100 like
-    // ****************************
+    // ============================
     public static List<Map<String, Object>> selezionaLavoriCon100Like() throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
         String query = "SELECT L.ID, L.titolo, L.rating, L.dataPubblicazione, L.numeroCapitoli, L.utente_ID, L.codiceLingua " +
@@ -640,8 +643,8 @@ public class DatabaseManager {
                 Map<String, Object> lavoro = new HashMap<>();
                 lavoro.put("ID", rs.getInt("ID"));
                 lavoro.put("titolo", rs.getString("titolo"));
-                lavoro.put("rating", rs.getDouble("rating"));
-                lavoro.put("dataPubblicazione", rs.getDate("dataPubblicazione"));
+                lavoro.put("rating", rs.getString("rating"));
+                lavoro.put("dataPubblicazione", rs.getTimestamp("dataPubblicazione"));
                 lavoro.put("numeroCapitoli", rs.getInt("numeroCapitoli"));
                 lavoro.put("utente_ID", rs.getInt("utente_ID"));
                 lavoro.put("codiceLingua", rs.getString("codiceLingua"));
@@ -650,4 +653,5 @@ public class DatabaseManager {
         }
         return lista;
     }
+
 }
