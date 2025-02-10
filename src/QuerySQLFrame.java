@@ -2,6 +2,7 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.sql.ResultSetMetaData;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.Map;
 public class QuerySQLFrame extends JFrame {
     private ArrayList<JButton> operationButtons;
     private JTextArea resultTextArea;
+    private JScrollPane resultScrollPane;
 
     public QuerySQLFrame() {
         add(new JLabel("Scegli un operazione: ", JLabel.CENTER), BorderLayout.NORTH);
@@ -42,7 +44,8 @@ public class QuerySQLFrame extends JFrame {
         resultTextArea.setLineWrap(true);
         resultTextArea.setWrapStyleWord(true);
 
-        panel.add(new JScrollPane(resultTextArea), c);
+        resultScrollPane = new JScrollPane(resultTextArea);
+        panel.add(resultScrollPane, c);
 
         Border border = BorderFactory.createEmptyBorder(10, 10, 10, 10);
         panel.setBorder(border);
@@ -51,15 +54,38 @@ public class QuerySQLFrame extends JFrame {
         pack();
     }
 
+    public static String formatMap(Map<String, Object> map) {
+        StringBuilder sb = new StringBuilder();
+        map.forEach((k, v) -> sb.append(k).append(": ").append(v).append("\n"));
+        return sb.toString();
+    }
+
+    public static String formatList(List<Map<String, Object>> list) {
+        StringBuilder sb = new StringBuilder();
+        for (Map<String, Object> map : list) {
+            sb.append(formatMap(map)).append("\n");
+        }
+        return sb.toString();
+    }
+
     public static String[] showInputDialog(String title, String[] labels) {
+        JPanel outerPanel = new JPanel();
+        outerPanel.setLayout(new BoxLayout(outerPanel, BoxLayout.Y_AXIS));
         JPanel panel = new JPanel(new GridLayout(labels.length, 2, 5, 5));
         JTextField[] fields = new JTextField[labels.length];
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        var label = new JLabel(title);
+        label.setAlignmentX(Component.CENTER_ALIGNMENT);
+        outerPanel.add(label);
+        outerPanel.add(panel);
+
         for (int i = 0; i < labels.length; i++) {
             panel.add(new JLabel(labels[i] + ":"));
             fields[i] = new JTextField(22);
             panel.add(fields[i]);
         }
-        int result = JOptionPane.showConfirmDialog(null, panel, title,
+        int result = JOptionPane.showConfirmDialog(null, outerPanel, title,
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
         if (result == JOptionPane.OK_OPTION) {
             String[] responses = new String[labels.length];
@@ -109,22 +135,26 @@ public class QuerySQLFrame extends JFrame {
             },
             // Listener 2: Select User Data (Operation 2)
             e -> {
-                String[] inputs = showInputDialog("Seleziona Dati Utente", new String[]{
+                var opName = "Seleziona Dati Utente";
+                String[] inputs = showInputDialog(opName, new String[]{
                         "ID utente (int)"
                 });
                 if (inputs != null) {
                     try {
                         int id = Integer.parseInt(inputs[0]);
                         java.sql.ResultSet rs = DatabaseManager.selezionaDatiUtente(id);
+                        StringBuilder sb = new StringBuilder(opName + ":\n");
+                        // Use ResultSetMetaData to display all columns
+                        ResultSetMetaData md = rs.getMetaData();
+                        int columnCount = md.getColumnCount();
                         if (rs.next()) {
-                            String dati = "ID: " + rs.getInt("ID")
-                                    + "\nNome: " + rs.getString("nome")
-                                    + "\nCognome: " + rs.getString("cognome")
-                                    + "\nEmail: " + rs.getString("email");
-                            resultTextArea.setText(dati);
+                            for (int i = 1; i <= columnCount; i++) {
+                                sb.append(md.getColumnLabel(i)).append(": ").append(rs.getObject(i)).append("\n");
+                            }
                         } else {
-                            resultTextArea.setText("Utente non trovato.");
+                            sb.append("Utente non trovato.");
                         }
+                        resultTextArea.setText(sb.toString());
                         rs.getStatement().getConnection().close();
                     } catch (Exception ex) {
                         JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
@@ -269,7 +299,6 @@ public class QuerySQLFrame extends JFrame {
                         if (lavoro.isEmpty()) {
                             resultTextArea.setText("Lavoro non trovato.");
                         } else {
-                            // TODO rivedi formato
                             StringBuilder msg = new StringBuilder();
                             lavoro.forEach((k, v) -> msg.append(k).append(": ").append(v).append("\n"));
                             resultTextArea.setText(msg.toString());
@@ -282,19 +311,16 @@ public class QuerySQLFrame extends JFrame {
             },
             // Listener 10: List Public Works (Operation 10)
             e -> {
+                var opName = "Elenca lavori pubblici";
                 try {
                     List<Map<String, Object>> lista = DatabaseManager.elencaLavoriPubblici();
+                    StringBuilder msg = new StringBuilder(opName + ":\n");
                     if (lista.isEmpty()) {
-                        resultTextArea.setText("Nessun lavoro pubblico trovato.");
+                        msg.append("Nessun lavoro pubblico trovato.");
                     } else {
-                        StringBuilder msg = new StringBuilder();
-                        lista.forEach(lav -> msg
-                                .append("ID: ").append(lav.get("ID"))
-                                .append(", Titolo: ").append(lav.get("titolo"))
-                                .append(", Visualizzazioni: ").append(lav.get("visualizzazioni"))
-                                .append("\n"));
-                        resultTextArea.setText(msg.toString());
+                        msg.append(formatList(lista));
                     }
+                    resultTextArea.setText(msg.toString());
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
                             "Errore", JOptionPane.ERROR_MESSAGE);
@@ -302,19 +328,16 @@ public class QuerySQLFrame extends JFrame {
             },
             // Listener 11: List Works for Sale (Operation 11)
             e -> {
+                var opName = "Elenca lavori in vendita";
                 try {
                     List<Map<String, Object>> lista = DatabaseManager.elencaLavoriInVendita();
+                    StringBuilder msg = new StringBuilder(opName + ":\n");
                     if (lista.isEmpty()) {
-                        resultTextArea.setText("Nessun lavoro in vendita trovato.");
+                        msg.append("Nessun lavoro in vendita trovato.");
                     } else {
-                        StringBuilder msg = new StringBuilder();
-                        lista.forEach(lav -> msg.append("ID: ").append(lav.get("ID"))
-                                .append(", Titolo: ").append(lav.get("titolo"))
-                                .append(", Prezzo di partenza: ").append(lav.get("prezzoDiPartenza"))
-                                .append(", Scadenza: ").append(lav.get("Scadenza"))
-                                .append("\n"));
-                        resultTextArea.setText(msg.toString());
+                        msg.append(formatList(lista));
                     }
+                    resultTextArea.setText(msg.toString());
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
                             "Errore", JOptionPane.ERROR_MESSAGE);
@@ -322,17 +345,16 @@ public class QuerySQLFrame extends JFrame {
             },
             // Listener 12: List Works Ordered by Chapter Count (Operation 12)
             e -> {
+                var opName = "Elenca lavori ordinati per numero di capitoli";
                 try {
                     List<Map<String, Object>> lista = DatabaseManager.elencaLavoriOrdinePerCapitoli();
+                    StringBuilder msg = new StringBuilder(opName + ":\n");
                     if (lista.isEmpty()) {
-                        resultTextArea.setText("Nessun lavoro trovato.");
+                        msg.append("Nessun lavoro trovato.");
                     } else {
-                        StringBuilder msg = new StringBuilder();
-                        lista.forEach(lav -> msg.append("ID: ").append(lav.get("ID"))
-                                .append(", Titolo: ").append(lav.get("titolo"))
-                                .append(", Capitoli: ").append(lav.get("numeroCapitoli")).append("\n"));
-                        resultTextArea.setText(msg.toString());
+                        msg.append(formatList(lista));
                     }
+                    resultTextArea.setText(msg.toString());
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
                             "Errore", JOptionPane.ERROR_MESSAGE);
@@ -340,21 +362,21 @@ public class QuerySQLFrame extends JFrame {
             },
             // Listener 13: List Works by Language (Operation 13)
             e -> {
-                String[] inputs = showInputDialog("Elenca Lavori per Lingua", new String[]{
+                var opName = "Elenca lavori in base alla lingua";
+                String[] inputs = showInputDialog(opName, new String[]{
                         "Codice lingua"
                 });
                 if (inputs != null) {
                     try {
                         String codiceLingua = inputs[0];
                         List<Map<String, Object>> lista = DatabaseManager.elencaLavoriPerLingua(codiceLingua);
+                        StringBuilder msg = new StringBuilder(opName + ":\n");
                         if (lista.isEmpty()) {
-                            resultTextArea.setText("Nessun lavoro trovato per la lingua " + codiceLingua);
+                            msg.append("Nessun lavoro trovato per la lingua " + codiceLingua);
                         } else {
-                            StringBuilder msg = new StringBuilder();
-                            lista.forEach(lav -> msg.append("ID: ").append(lav.get("ID"))
-                                    .append(", Titolo: ").append(lav.get("titolo")).append("\n"));
-                            resultTextArea.setText(msg.toString());
+                            msg.append(formatList(lista));
                         }
+                        resultTextArea.setText(msg.toString());
                     } catch (Exception ex) {
                         JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
                                 "Errore", JOptionPane.ERROR_MESSAGE);
@@ -363,17 +385,16 @@ public class QuerySQLFrame extends JFrame {
             },
             // Listener 14: List Works Ordered by Publication Date (Operation 14)
             e -> {
+                var opName = "Elenca lavori ordinati per data di pubblicazione";
                 try {
                     List<Map<String, Object>> lista = DatabaseManager.elencaLavoriOrdinePerDataPubblicazione();
+                    StringBuilder msg = new StringBuilder(opName + ":\n");
                     if (lista.isEmpty()) {
-                        resultTextArea.setText("Nessun lavoro trovato.");
+                        msg.append("Nessun lavoro trovato.");
                     } else {
-                        StringBuilder msg = new StringBuilder();
-                        lista.forEach(lav -> msg.append("ID: ").append(lav.get("ID"))
-                                .append(", Titolo: ").append(lav.get("titolo"))
-                                .append(", Data: ").append(lav.get("dataPubblicazione")).append("\n"));
-                        resultTextArea.setText(msg.toString());
+                        msg.append(formatList(lista));
                     }
+                    resultTextArea.setText(msg.toString());
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
                             "Errore", JOptionPane.ERROR_MESSAGE);
@@ -381,6 +402,7 @@ public class QuerySQLFrame extends JFrame {
             },
             // Listener 15: List Works by Tag (Operation 15)
             e -> {
+                var opName = "Elenca lavori in base al tag";
                 String[] inputs = showInputDialog("Elenca Lavori per Tag", new String[]{
                         "Nome tag"
                 });
@@ -388,14 +410,13 @@ public class QuerySQLFrame extends JFrame {
                     try {
                         String nomeTag = inputs[0];
                         List<Map<String, Object>> lista = DatabaseManager.elencaLavoriPerTag(nomeTag);
+                        StringBuilder msg = new StringBuilder(opName + ":\n");
                         if (lista.isEmpty()) {
-                            resultTextArea.setText("Nessun lavoro trovato per il tag " + nomeTag);
+                            msg.append("Nessun lavoro trovato per il tag " + nomeTag);
                         } else {
-                            StringBuilder msg = new StringBuilder();
-                            lista.forEach(lav -> msg.append("ID: ").append(lav.get("ID"))
-                                    .append(", Titolo: ").append(lav.get("titolo")).append("\n"));
-                            resultTextArea.setText(msg.toString());
+                            msg.append(formatList(lista));
                         }
+                        resultTextArea.setText(msg.toString());
                     } catch (Exception ex) {
                         JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
                                 "Errore", JOptionPane.ERROR_MESSAGE);
@@ -404,18 +425,16 @@ public class QuerySQLFrame extends JFrame {
             },
             // Listener 16: List Public Works Ordered by Views (Operation 16)
             e -> {
+                var opName = "Elenca lavori ordinati in base alle visualizzazioni";
                 try {
                     List<Map<String, Object>> lista = DatabaseManager.elencaLavoriPubbliciPerVisualizzazioni();
+                    StringBuilder msg = new StringBuilder(opName + ":\n");
                     if (lista.isEmpty()) {
-                        resultTextArea.setText("Nessun lavoro pubblico trovato.");
+                        msg.append("Nessun lavoro pubblico trovato.");
                     } else {
-                        StringBuilder msg = new StringBuilder();
-                        lista.forEach(lav -> msg.append("ID: ").append(lav.get("ID"))
-                                .append(", Titolo: ").append(lav.get("titolo"))
-                                .append(", Visualizzazioni: ").append(lav.get("visualizzazioni"))
-                                .append("\n"));
-                        resultTextArea.setText(msg.toString());
+                        msg.append(formatList(lista));
                     }
+                    resultTextArea.setText(msg.toString());
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
                             "Errore", JOptionPane.ERROR_MESSAGE);
@@ -431,10 +450,11 @@ public class QuerySQLFrame extends JFrame {
                         int idLavoro = Integer.parseInt(inputs[0]);
                         int numCapitolo = Integer.parseInt(inputs[1]);
                         String contenuto = DatabaseManager.selezionaContenutoCapitolo(idLavoro, numCapitolo);
+                        resultTextArea.setText("Selelziona Contenuto Capitolo:\n");
                         if (contenuto == null) {
-                            resultTextArea.setText("Capitolo non trovato.");
+                            resultTextArea.append("Capitolo non trovato.");
                         } else {
-                            resultTextArea.setText("Contenuto:\n" + contenuto);
+                            resultTextArea.append("Contenuto:\n" + contenuto);
                         }
                     } catch (Exception ex) {
                         JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
@@ -508,15 +528,14 @@ public class QuerySQLFrame extends JFrame {
             // Listener 21: Purchase Work (Make it Private) (Operation 21)
             e -> {
                 String[] inputs = showInputDialog("Acquista Lavoro", new String[]{
-                        "ID lavoro (int)", "Data fattura (yyyy-mm-dd HH:mm:ss)", "Modalità pagamento", "Prezzo (double)"
+                        "ID lavoro (int)", "Data fattura (yyyy-mm-dd HH:mm:ss)", "Prezzo (double)"
                 });
                 if (inputs != null) {
                     try {
                         int idLavoro = Integer.parseInt(inputs[0]);
                         Timestamp dataFattura = Timestamp.valueOf(inputs[1]);
-                        String modalita = inputs[2];
-                        double prezzo = Double.parseDouble(inputs[3]);
-                        int fatturaNum = DatabaseManager.acquistaLavoro(idLavoro, dataFattura, modalita, prezzo);
+                        double prezzo = Double.parseDouble(inputs[2]);
+                        int fatturaNum = DatabaseManager.acquistaLavoro(idLavoro, dataFattura, prezzo);
                         resultTextArea.setText("Lavoro acquistato e reso privato con successo!\nNumero Fattura: " + fatturaNum);
                     } catch (Exception ex) {
                         JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
@@ -526,16 +545,16 @@ public class QuerySQLFrame extends JFrame {
             },
             // Listener 22: List Works of French Authors with at Least 10 Chapters (Operation 22)
             e -> {
+                var opName = "Elenca tutti i lavori di autori francesi con almeno 10 capitoli";
                 try {
                     List<Map<String, Object>> lista = DatabaseManager.selezionaLavoriAutoriFrancesi();
+                    StringBuilder msg = new StringBuilder(opName + ":\n");
                     if (lista.isEmpty()) {
-                        resultTextArea.setText("Nessun lavoro trovato.");
+                        msg.append("Nessun lavoro trovato.");
                     } else {
-                        StringBuilder msg = new StringBuilder();
-                        lista.forEach(lav -> msg.append("ID: ").append(lav.get("ID"))
-                                .append(", Titolo: ").append(lav.get("titolo")).append("\n"));
-                        resultTextArea.setText(msg.toString());
+                        msg.append(formatList(lista));
                     }
+                    resultTextArea.setText(msg.toString());
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
                             "Errore", JOptionPane.ERROR_MESSAGE);
@@ -543,16 +562,16 @@ public class QuerySQLFrame extends JFrame {
             },
             // Listener 23: List Comments that are Replies in French Works (Operation 23)
             e -> {
+                var opName = "Elenca tutti i commenti in risposta ad un commento di tutti i lavori in francese";
                 try {
                     List<Map<String, Object>> lista = DatabaseManager.selezionaCommentiRispostaLavoriFrancesi();
+                    StringBuilder msg = new StringBuilder(opName + ":\n");
                     if (lista.isEmpty()) {
-                        resultTextArea.setText("Nessun commento trovato.");
+                        msg.append("Nessun commento trovato.");
                     } else {
-                        StringBuilder msg = new StringBuilder();
-                        lista.forEach(com -> msg.append("ID: ").append(com.get("ID"))
-                                .append(", Contenuto: ").append(com.get("contenuto")).append("\n"));
-                        resultTextArea.setText(msg.toString());
+                        msg.append(formatList(lista));
                     }
+                    resultTextArea.setText(msg.toString());
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
                             "Errore", JOptionPane.ERROR_MESSAGE);
@@ -560,16 +579,16 @@ public class QuerySQLFrame extends JFrame {
             },
             // Listener 24: List Works with at Least 100 Likes (Operation 24)
             e -> {
+                var opName = "Elenca tutti i lavori che hanno almeno 100 like";
                 try {
                     List<Map<String, Object>> lista = DatabaseManager.selezionaLavoriCon100Like();
+                    StringBuilder msg = new StringBuilder(opName + ":\n");
                     if (lista.isEmpty()) {
-                        resultTextArea.setText("Nessun lavoro trovato.");
+                        msg.append("Nessun lavoro trovato.");
                     } else {
-                        StringBuilder msg = new StringBuilder();
-                        lista.forEach(lav -> msg.append("ID: ").append(lav.get("ID"))
-                                .append(", Titolo: ").append(lav.get("titolo")).append("\n"));
-                        resultTextArea.setText(msg.toString());
+                        msg.append(formatList(lista));
                     }
+                    resultTextArea.setText(msg.toString());
                 } catch (Exception ex) {
                     JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
                             "Errore", JOptionPane.ERROR_MESSAGE);
@@ -583,7 +602,11 @@ public class QuerySQLFrame extends JFrame {
         operationButtons = new ArrayList<>();
         for (var i = 0; i < listeners.length; i++) {
             var button = new JButton("Operazione " + (i + 1));
-            button.addActionListener(listeners[i]);
+            var tempListener = listeners[i];
+            button.addActionListener(e -> {
+                tempListener.actionPerformed(e);
+                resultTextArea.setCaretPosition(0);
+            });
             operationButtons.add(button);
         }
     }

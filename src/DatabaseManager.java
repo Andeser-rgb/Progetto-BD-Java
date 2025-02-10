@@ -537,7 +537,7 @@ public class DatabaseManager {
     // Operazione 21: Acquistare lavoro (rendere lavoro privato)
     // - Elimina da InVendita, inserisce in Fattura e Privato; restituisce il numero della fattura generato.
     // ============================
-    public static int acquistaLavoro(int lavoroId, Timestamp dataFattura, String modalitaPagamento, double prezzo)
+    public static int acquistaLavoro(int lavoroId, Timestamp dataFattura, double prezzo)
             throws SQLException {
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
@@ -549,11 +549,10 @@ public class DatabaseManager {
                 stmt.executeUpdate();
             }
             // Inserisce in Fattura
-            String insertFattura = "INSERT INTO Fattura(dataFattura, modalitaPagamento, prezzo) VALUES (?, ?, ?);";
+            String insertFattura = "INSERT INTO Fattura(dataFattura, prezzo) VALUES (?, ?);";
             try (PreparedStatement stmt = conn.prepareStatement(insertFattura, Statement.RETURN_GENERATED_KEYS)) {
                 stmt.setTimestamp(1, dataFattura);
-                stmt.setString(2, modalitaPagamento);
-                stmt.setDouble(3, prezzo);
+                stmt.setDouble(2, prezzo);
                 stmt.executeUpdate();
                 try (ResultSet rs = stmt.getGeneratedKeys()) {
                     if (rs.next()) {
@@ -637,7 +636,7 @@ public class DatabaseManager {
     // ============================
     public static List<Map<String, Object>> selezionaLavoriCon100Like() throws SQLException {
         List<Map<String, Object>> lista = new ArrayList<>();
-        String query = "SELECT L.* " +
+        String query = "SELECT L.*, COUNT(*) as miPiace " +
                 "FROM Lavoro L INNER JOIN MiPiace M ON L.ID = M.lavoro_ID " +
                 "GROUP BY L.ID HAVING COUNT(*) >= 100;";
         try (Connection conn = getConnection();
@@ -652,6 +651,7 @@ public class DatabaseManager {
                 lavoro.put("numeroCapitoli", rs.getInt("numeroCapitoli"));
                 lavoro.put("utente_ID", rs.getInt("utente_ID"));
                 lavoro.put("codiceLingua", rs.getString("codiceLingua"));
+                lavoro.put("miPiace", rs.getInt("miPiace"));
                 lista.add(lavoro);
             }
         }
