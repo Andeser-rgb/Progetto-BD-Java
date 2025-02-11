@@ -207,11 +207,11 @@ public class DatabaseManager {
     // ============================
     // Operazione 8: Aggiungere alias
     // ============================
-    public static void aggiungiAlias(int utenteId, String alias) throws SQLException {
-        String query = "INSERT INTO Alias(utente_ID, nome) VALUES (?, ?);";
+    public static void modificaUsername(int utenteId, String username) throws SQLException {
+        String query = "UPDATE Utente SET username = ? WHERE ID = ?;";
         try (Connection conn = getConnection(); PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, utenteId);
-            stmt.setString(2, alias);
+            stmt.setString(1, username);
+            stmt.setInt(2, utenteId);
             stmt.executeUpdate();
         }
     }

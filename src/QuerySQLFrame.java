@@ -105,6 +105,7 @@ public class QuerySQLFrame extends JFrame {
                         "Nome",
                         "Cognome",
                         "Email",
+                        "Username",
                         "Password",
                         "Via",
                         "Numero",
@@ -269,18 +270,18 @@ public class QuerySQLFrame extends JFrame {
                     }
                 }
             },
-            // Listener 8: Add Alias (Operation 8)
+            // Listener 8: Modify username (Operation 8)
             e -> {
-                String[] inputs = showInputDialog("Aggiungi Alias", new String[]{
-                        "ID utente (int)", "Alias"
+                String[] inputs = showInputDialog("Modifica Username", new String[]{
+                        "ID utente (int)", "Nuovo username"
                 });
                 if (inputs != null) {
                     try {
                         int idUtente = Integer.parseInt(inputs[0]);
-                        String alias = inputs[1];
+                        String username = inputs[1];
 
-                        DatabaseManager.aggiungiAlias(idUtente, alias);
-                        resultTextArea.setText("Alias aggiunto con successo!");
+                        DatabaseManager.modificaUsername(idUtente, username);
+                        resultTextArea.setText("Username modificato con successo!");
                     } catch (Exception ex) {
                         JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
                                 "Errore", JOptionPane.ERROR_MESSAGE);
@@ -606,7 +607,7 @@ public class QuerySQLFrame extends JFrame {
             "Aggiungere capitolo",
             "Modificare capitolo",
             "Aggiungere tag ad un lavoro",
-            "Aggiungere alias",
+            "Modificare username utente",
             "Selezionare dati lavoro compreso il # capitoli",
             "Elencare lavori pubblici",
             "Elencare lavori in vendita",
