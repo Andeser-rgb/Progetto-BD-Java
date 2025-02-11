@@ -89,11 +89,12 @@ public class DatabaseManager {
     // Inserisce in Lavoro e poi in Pubblico; restituisce l'ID del nuovo lavoro.
     // ============================
     public static int aggiungiLavoroPubblico(String titolo, String rating, Timestamp dataPubblicazione,
-                                             int numeroCapitoli, int utenteId, String codiceLingua)
+                                             int numeroCapitoli, int utenteId, String codiceLingua, String contenuto)
             throws SQLException {
         String queryLavoro = "INSERT INTO Lavoro(titolo, rating, dataPubblicazione, numeroCapitoli, utente_ID, codiceLingua) " +
                 "VALUES (?, ?, ?, ?, ?, ?);";
         String queryPubblico = "INSERT INTO Pubblico(lavoro_ID, visualizzazioni) VALUES (?, 0);";
+        String queryCapitolo = "INSERT INTO Capitolo(lavoro_ID, numeroCapitolo, dataAggiornamento, contenuto) VALUES (?, ?, ?, ?);";
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
             int idLavoro;
@@ -117,7 +118,15 @@ public class DatabaseManager {
                 stmtPub.setInt(1, idLavoro);
                 stmtPub.executeUpdate();
             }
+            try (PreparedStatement stmtCap = conn.prepareStatement(queryCapitolo)) {
+                stmtCap.setInt(1, idLavoro);
+                stmtCap.setInt(2, 1);
+                stmtCap.setTimestamp(3, dataPubblicazione);
+                stmtCap.setString(4, contenuto);
+                stmtCap.executeUpdate();
+            }
             conn.commit();
+            conn.setAutoCommit(true);
             return idLavoro;
         }
     }
@@ -128,11 +137,12 @@ public class DatabaseManager {
     // ============================
     public static int aggiungiLavoroInVendita(String titolo, String rating, Timestamp dataPubblicazione,
                                               int numeroCapitoli, int utenteId, String codiceLingua,
-                                              double prezzoDiPartenza, Timestamp scadenza)
+                                              double prezzoDiPartenza, Timestamp scadenza, String contenuto)
             throws SQLException {
         String queryLavoro = "INSERT INTO Lavoro(titolo, rating, dataPubblicazione, numeroCapitoli, utente_ID, codiceLingua) " +
                 "VALUES (?, ?, ?, ?, ?, ?);";
         String queryInVendita = "INSERT INTO InVendita(lavoro_ID, prezzoDiPartenza, scadenza) VALUES (?, ?, ?);";
+        String queryCapitolo = "INSERT INTO Capitolo(lavoro_ID, numeroCapitolo, dataAggiornamento, contenuto) VALUES (?, ?, ?, ?);";
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
             int idLavoro;
@@ -158,7 +168,15 @@ public class DatabaseManager {
                 stmtVendita.setTimestamp(3, scadenza);
                 stmtVendita.executeUpdate();
             }
+            try (PreparedStatement stmtCap = conn.prepareStatement(queryCapitolo)) {
+                stmtCap.setInt(1, idLavoro);
+                stmtCap.setInt(2, 1);
+                stmtCap.setTimestamp(3, dataPubblicazione);
+                stmtCap.setString(4, contenuto);
+                stmtCap.executeUpdate();
+            }
             conn.commit();
+            conn.setAutoCommit(true);
             return idLavoro;
         }
     }
@@ -500,6 +518,7 @@ public class DatabaseManager {
                 stmtRisponde.executeUpdate();
             }
             conn.commit();
+            conn.setAutoCommit(true);
             return generatedCommentoId;
         }
     }
@@ -576,6 +595,7 @@ public class DatabaseManager {
                 stmt.executeUpdate();
             }
             conn.commit();
+            conn.setAutoCommit(true);
             return numeroFattura;
         }
     }

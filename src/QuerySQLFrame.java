@@ -167,7 +167,8 @@ public class QuerySQLFrame extends JFrame {
             e -> {
                 String[] inputs = showInputDialog("Aggiungi Lavoro Pubblico", new String[]{
                         "Titolo", "Rating (G, T, M, E)", "Data pubblicazione (yyyy-mm-dd HH:mm:ss)",
-                        "Numero capitoli (int)", "ID autore (int)", "Codice lingua"
+                        "Numero capitoli (int)", "ID autore (int)", "Codice lingua",
+                        "Contenuto primo capitolo"
                 });
                 if (inputs != null) {
                     try {
@@ -177,8 +178,9 @@ public class QuerySQLFrame extends JFrame {
                         int numCap = Integer.parseInt(inputs[3]);
                         int idAutore = Integer.parseInt(inputs[4]);
                         String codiceLingua = inputs[5];
+                        String contenuto = inputs[6];
 
-                        int nuovoId = DatabaseManager.aggiungiLavoroPubblico(titolo, rating, dataPub, numCap, idAutore, codiceLingua);
+                        int nuovoId = DatabaseManager.aggiungiLavoroPubblico(titolo, rating, dataPub, numCap, idAutore, codiceLingua, contenuto);
                         resultTextArea.setText("Lavoro pubblico aggiunto con successo!\nID generato: " + nuovoId);
                     } catch (Exception ex) {
                         JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
@@ -191,7 +193,8 @@ public class QuerySQLFrame extends JFrame {
                 String[] inputs = showInputDialog("Aggiungi Lavoro in Vendita", new String[]{
                         "Titolo", "Rating (G, T, M, E)", "Data pubblicazione (yyyy-mm-dd HH:mm:ss)",
                         "Numero capitoli (int)", "ID autore (int)", "Codice lingua",
-                        "Prezzo di partenza (double)", "Data scadenza (yyyy-mm-dd HH:mm:ss)"
+                        "Prezzo di partenza (double)", "Data scadenza (yyyy-mm-dd HH:mm:ss)",
+                        "Contenuto primo capitolo"
                 });
                 if (inputs != null) {
                     try {
@@ -203,9 +206,10 @@ public class QuerySQLFrame extends JFrame {
                         String codiceLingua = inputs[5];
                         double prezzoPartenza = Double.parseDouble(inputs[6]);
                         Timestamp scadenza = Timestamp.valueOf(inputs[7]);
+                        String contenuto = inputs[7];
 
 
-                        int nuovoId = DatabaseManager.aggiungiLavoroInVendita(titolo, rating, dataPub, numCap, idAutore, codiceLingua, prezzoPartenza, scadenza);
+                        int nuovoId = DatabaseManager.aggiungiLavoroInVendita(titolo, rating, dataPub, numCap, idAutore, codiceLingua, prezzoPartenza, scadenza, contenuto);
                         resultTextArea.setText("Lavoro in vendita aggiunto con successo!\nID generato: " + nuovoId);
                     } catch (Exception ex) {
                         JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
