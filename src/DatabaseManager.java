@@ -205,7 +205,7 @@ public class DatabaseManager {
     }
 
     // ============================
-    // Operazione 8: Aggiungere alias
+    // Operazione 8: Modifica username
     // ============================
     public static void modificaUsername(int utenteId, String username) throws SQLException {
         String query = "UPDATE Utente SET username = ? WHERE ID = ?;";
