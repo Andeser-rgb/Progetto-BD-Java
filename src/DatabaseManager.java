@@ -556,7 +556,7 @@ public class DatabaseManager {
     // Operazione 21: Acquistare lavoro (rendere lavoro privato)
     // - Elimina da InVendita, inserisce in Fattura e Privato; restituisce il numero della fattura generato.
     // ============================
-    public static int acquistaLavoro(int lavoroId, Timestamp dataFattura, double prezzo)
+    public static int acquistaLavoro(int lavoroId, Timestamp dataFattura, double prezzo, int utenteId)
             throws SQLException {
         try (Connection conn = getConnection()) {
             conn.setAutoCommit(false);
@@ -568,10 +568,11 @@ public class DatabaseManager {
                 stmt.executeUpdate();
             }
             // Inserisce in Fattura
-            String insertFattura = "INSERT INTO Fattura(dataFattura, prezzo) VALUES (?, ?);";
+            String insertFattura = "INSERT INTO Fattura(dataFattura, prezzo, utente_ID) VALUES (?, ?, ?);";
             try (PreparedStatement stmt = conn.prepareStatement(insertFattura, Statement.RETURN_GENERATED_KEYS)) {
                 stmt.setTimestamp(1, dataFattura);
                 stmt.setDouble(2, prezzo);
+                stmt.setInt(3, utenteId);
                 stmt.executeUpdate();
                 try (ResultSet rs = stmt.getGeneratedKeys()) {
                     if (rs.next()) {
