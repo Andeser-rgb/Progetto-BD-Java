@@ -533,14 +533,15 @@ public class QuerySQLFrame extends JFrame {
             // Listener 21: Purchase Work (Make it Private) (Operation 21)
             e -> {
                 String[] inputs = showInputDialog("Acquista Lavoro", new String[]{
-                        "ID lavoro (int)", "Data fattura (yyyy-mm-dd HH:mm:ss)", "Prezzo (double)"
+                        "ID lavoro (int)", "Data fattura (yyyy-mm-dd HH:mm:ss)", "Prezzo (double)", "ID Utente (int)"
                 });
                 if (inputs != null) {
                     try {
                         int idLavoro = Integer.parseInt(inputs[0]);
                         Timestamp dataFattura = Timestamp.valueOf(inputs[1]);
                         double prezzo = Double.parseDouble(inputs[2]);
-                        int fatturaNum = DatabaseManager.acquistaLavoro(idLavoro, dataFattura, prezzo);
+                        int idUtente = Integer.parseInt(inputs[3]);
+                        int fatturaNum = DatabaseManager.acquistaLavoro(idLavoro, dataFattura, prezzo, idUtente);
                         resultTextArea.setText("Lavoro acquistato e reso privato con successo!\nNumero Fattura: " + fatturaNum);
                     } catch (Exception ex) {
                         JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
