@@ -599,6 +599,22 @@ public class QuerySQLFrame extends JFrame {
                     JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
                             "Errore", JOptionPane.ERROR_MESSAGE);
                 }
+            },
+            e -> {
+                var opName = "Elenca tutti gli utenti che non hanno pubblicato laovri";
+                try {
+                    List<Map<String, Object>> lista = DatabaseManager.selezionaUtentiSenzaLavori();
+                    StringBuilder msg = new StringBuilder(opName + ":\n");
+                    if (lista.isEmpty()) {
+                        msg.append("Nessun utente trovato.");
+                    } else {
+                        msg.append(formatList(lista));
+                    }
+                    resultTextArea.setText(msg.toString());
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "Errore: " + ex.getMessage(),
+                            "Errore", JOptionPane.ERROR_MESSAGE);
+                }
             }
 
 
@@ -628,7 +644,8 @@ public class QuerySQLFrame extends JFrame {
             "Acquistare lavoro (rendere lavoro privato)",
             "Selezionare tutti i lavori di autori francesi con almeno 10 capitoli",
             "Selezionare tutti i commenti in risposta ad un commento di tutti i lavori in francese",
-            "Selezionare tutti i lavori che hanno almeno 100 like"
+            "Selezionare tutti i lavori che hanno almeno 100 like",
+            "Seleziona tutti gli utenti che non hanno pubblicato lavori"
     };
 
     private void initButtons() {

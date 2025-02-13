@@ -679,4 +679,36 @@ public class DatabaseManager {
         return lista;
     }
 
+
+    // ============================
+    // Operazione 25: Selezionare tutti gli utenti che non hanno pubblicato lavori
+    // ============================
+    public static List<Map<String, Object>> selezionaUtentiSenzaLavori() throws SQLException {
+        List<Map<String, Object>> utenti = new ArrayList<>();
+        // Nested query: Select all Utente where ID is not in the list of utente_ID from Lavoro
+        String query = "SELECT * FROM Utente WHERE ID NOT IN (SELECT utente_ID FROM Lavoro);";
+
+        try (Connection conn = getConnection();
+             PreparedStatement ps = conn.prepareStatement(query);
+             ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                Map<String, Object> row = new HashMap<>();
+                row.put("ID", rs.getInt("ID"));
+                row.put("nome", rs.getString("nome"));
+                row.put("cognome", rs.getString("cognome"));
+                row.put("username", rs.getString("username"));
+                row.put("email", rs.getString("email"));
+                row.put("passwordH", rs.getString("passwordH"));
+                row.put("via", rs.getString("via"));
+                row.put("numero", rs.getString("numero"));
+                row.put("citta", rs.getString("citta"));
+                row.put("paese", rs.getString("paese"));
+                row.put("codice_postale", rs.getString("codice_postale"));
+                utenti.add(row);
+            }
+        }
+
+        return utenti;
+    }
 }
